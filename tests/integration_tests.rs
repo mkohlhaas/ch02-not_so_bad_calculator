@@ -152,7 +152,10 @@ fn test_only_spaces() {
 
 #[test]
 fn test_complex_expression() {
-    assert_eq!(evaluate_expression("3 + 4 * 2 / (1 - 5) * 2").unwrap(), "-1");
+    assert_eq!(
+        evaluate_expression("3 + 4 * 2 / (1 - 5) * 2").unwrap(),
+        "-1"
+    );
 }
 
 #[test]
@@ -257,7 +260,10 @@ fn test_nested_unary_and_binary() {
 
 #[test]
 fn test_mixed_spaces_and_tabs() {
-    assert_eq!(evaluate_expression("  ( 1 + 2 ) * ( 3 + 4 )  ").unwrap(), "21");
+    assert_eq!(
+        evaluate_expression("  ( 1 + 2 ) * ( 3 + 4 )  ").unwrap(),
+        "21"
+    );
 }
 
 #[test]
