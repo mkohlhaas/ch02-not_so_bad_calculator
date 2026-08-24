@@ -333,7 +333,7 @@ mod tests {
 
     #[test]
     fn test_complex_expression() {
-        assert_eq!(evaluate_expression("3 + 4 * 2 / (1 - 5) * 2").unwrap(), "1");
+        assert_eq!(evaluate_expression("3 + 4 * 2 / (1 - 5) * 2").unwrap(), "-1");
     }
 
     #[test]
