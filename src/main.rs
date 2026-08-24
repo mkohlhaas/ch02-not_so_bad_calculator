@@ -482,4 +482,64 @@ mod tests {
     fn test_expression_with_newlines() {
         assert_eq!(evaluate_expression("2 +\n3").unwrap(), "5");
     }
+
+    #[test]
+    fn test_deep_nesting() {
+        assert_eq!(evaluate_expression("((2 + 3) * (4 - 1)) / 3").unwrap(), "5");
+    }
+
+    #[test]
+    fn test_multiple_unary_negation() {
+        assert_eq!(evaluate_expression("--5").unwrap(), "5");
+    }
+
+    #[test]
+    fn test_unary_after_paren() {
+        assert_eq!(evaluate_expression("(-2) * (-3)").unwrap(), "6");
+    }
+
+    #[test]
+    fn test_complex_precedence_chain() {
+        assert_eq!(evaluate_expression("2 + 3 * 4 - 5 / 2").unwrap(), "11.5");
+    }
+
+    #[test]
+    fn test_division_chain_left_assoc() {
+        assert_eq!(evaluate_expression("100 / 2 / 5").unwrap(), "10");
+    }
+
+    #[test]
+    fn test_subtraction_chain_left_assoc() {
+        assert_eq!(evaluate_expression("10 - 3 - 2 - 1").unwrap(), "4");
+    }
+
+    #[test]
+    fn test_paren_division() {
+        assert_eq!(evaluate_expression("(10 + 2) / (3 + 1)").unwrap(), "3");
+    }
+
+    #[test]
+    fn test_unary_negation_decimal() {
+        assert_eq!(evaluate_expression("-3.5 * 2").unwrap(), "-7");
+    }
+
+    #[test]
+    fn test_nested_unary_and_binary() {
+        assert_eq!(evaluate_expression("-(2 + 3) * 4").unwrap(), "-20");
+    }
+
+    #[test]
+    fn test_mixed_spaces_and_tabs() {
+        assert_eq!(evaluate_expression("  ( 1 + 2 ) * ( 3 + 4 )  ").unwrap(), "21");
+    }
+
+    #[test]
+    fn test_negative_paren_expression() {
+        assert_eq!(evaluate_expression("-(1 + 2 + 3)").unwrap(), "-6");
+    }
+
+    #[test]
+    fn test_complex_mixed_operators() {
+        assert_eq!(evaluate_expression("2 * 3 + 4 * 5 - 6 / 2").unwrap(), "21");
+    }
 }
