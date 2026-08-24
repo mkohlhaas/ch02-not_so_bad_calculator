@@ -1,4 +1,4 @@
-use calculator::evaluate_expression;
+use not_so_bad_calculator::evaluate_expression;
 
 #[test]
 fn test_addition() {
