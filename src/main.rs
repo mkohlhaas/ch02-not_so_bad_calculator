@@ -540,6 +540,6 @@ mod tests {
 
     #[test]
     fn test_complex_mixed_operators() {
-        assert_eq!(evaluate_expression("2 * 3 + 4 * 5 - 6 / 2").unwrap(), "21");
+        assert_eq!(evaluate_expression("2 * 3 + 4 * 5 - 6 / 2").unwrap(), "23");
     }
 }
