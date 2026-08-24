@@ -54,105 +54,197 @@ impl Operator {
     }
 }
 
-fn skip_spaces(s: &str, i: &mut usize) {
-    while *i < s.len() && s.as_bytes()[*i].is_ascii_whitespace() {
-        *i += 1;
+#[derive(Debug, PartialEq, Clone, Copy)]
+enum Token {
+    Number(f64),
+    Plus,
+    Minus,
+    Mul,
+    Div,
+    LParen,
+    RParen,
+    Neg,
+}
+
+fn precedence(t: &Token) -> u8 {
+    match t {
+        Token::Neg => 3,
+        Token::Mul | Token::Div => 2,
+        Token::Plus | Token::Minus => 1,
+        _ => 0,
     }
 }
 
-fn parse_number(s: &str, i: &mut usize) -> Result<f64, String> {
-    skip_spaces(s, i);
-    let start = *i;
-    while *i < s.len() {
-        let b = s.as_bytes()[*i];
-        if b.is_ascii_digit() || b == b'.' {
-            *i += 1;
-        } else {
-            break;
-        }
+fn is_left_assoc(t: &Token) -> bool {
+    match t {
+        Token::Neg => false,
+        _ => true,
     }
-    if start == *i {
-        return Err("Expected number".to_string());
-    }
-    s[start..*i].parse::<f64>().map_err(|_| "Invalid number".to_string())
 }
 
-fn parse_expression(s: &str, i: &mut usize) -> Result<f64, String> {
-    let mut lhs = parse_term(s, i)?;
-    loop {
-        skip_spaces(s, i);
-        if *i >= s.len() {
-            break;
+fn is_operator(t: &Token) -> bool {
+    matches!(t, Token::Plus | Token::Minus | Token::Mul | Token::Div | Token::Neg)
+}
+
+fn tokenize(s: &str) -> Result<Vec<Token>, String> {
+    let mut tokens = Vec::new();
+    let mut chars = s.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch.is_whitespace() {
+            continue;
         }
-        let ch = s.as_bytes()[*i] as char;
-        if ch == '+' || ch == '-' {
-            *i += 1;
-            let rhs = parse_term(s, i)?;
-            if ch == '+' {
-                lhs += rhs;
-            } else {
-                lhs -= rhs;
+        match ch {
+            '+' => tokens.push(Token::Plus),
+            '-' => {
+                let is_unary = tokens.is_empty()
+                    || matches!(
+                        tokens.last().unwrap(),
+                        Token::Plus | Token::Minus | Token::Mul | Token::Div | Token::LParen | Token::Neg
+                    );
+                if is_unary {
+                    tokens.push(Token::Neg);
+                } else {
+                    tokens.push(Token::Minus);
+                }
             }
-        } else {
-            break;
+            '*' => tokens.push(Token::Mul),
+            '/' => tokens.push(Token::Div),
+            '(' => tokens.push(Token::LParen),
+            ')' => tokens.push(Token::RParen),
+            '0'..='9' | '.' => {
+                let mut num_str = String::new();
+                num_str.push(ch);
+                while let Some(&c) = chars.peek() {
+                    if c.is_ascii_digit() || c == '.' {
+                        num_str.push(c);
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                }
+                let val = num_str.parse::<f64>()
+                    .map_err(|_| format!("Invalid number: {}", num_str))?;
+                tokens.push(Token::Number(val));
+            }
+            _ => return Err(format!("Invalid character: {}", ch)),
         }
     }
-    Ok(lhs)
+    Ok(tokens)
 }
 
-fn parse_term(s: &str, i: &mut usize) -> Result<f64, String> {
-    let mut lhs = parse_factor(s, i)?;
-    loop {
-        skip_spaces(s, i);
-        if *i >= s.len() {
-            break;
+fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, String> {
+    let mut output = Vec::new();
+    let mut op_stack: Vec<Token> = Vec::new();
+
+    for token in tokens {
+        match token {
+            Token::Number(_) => output.push(token),
+            Token::Neg => {
+                while let Some(top) = op_stack.last() {
+                    if is_operator(top) && (precedence(top) > 3 || (precedence(top) == 3 && is_left_assoc(top))) {
+                        output.push(op_stack.pop().unwrap());
+                    } else {
+                        break;
+                    }
+                }
+                op_stack.push(token);
+            }
+            Token::Plus | Token::Minus => {
+                while let Some(top) = op_stack.last() {
+                    if is_operator(top) && (precedence(top) > 1 || (precedence(top) == 1 && is_left_assoc(top))) {
+                        output.push(op_stack.pop().unwrap());
+                    } else {
+                        break;
+                    }
+                }
+                op_stack.push(token);
+            }
+            Token::Mul | Token::Div => {
+                while let Some(top) = op_stack.last() {
+                    if is_operator(top) && (precedence(top) > 2 || (precedence(top) == 2 && is_left_assoc(top))) {
+                        output.push(op_stack.pop().unwrap());
+                    } else {
+                        break;
+                    }
+                }
+                op_stack.push(token);
+            }
+            Token::LParen => op_stack.push(token),
+            Token::RParen => {
+                let mut found = false;
+                while let Some(top) = op_stack.pop() {
+                    if top == Token::LParen {
+                        found = true;
+                        break;
+                    } else {
+                        output.push(top);
+                    }
+                }
+                if !found {
+                    return Err("Mismatched parentheses".to_string());
+                }
+            }
         }
-        let ch = s.as_bytes()[*i] as char;
-        if ch == '*' || ch == '/' {
-            *i += 1;
-            let rhs = parse_factor(s, i)?;
-            if ch == '*' {
-                lhs *= rhs;
-            } else {
-                if rhs == 0.0 {
+    }
+
+    while let Some(top) = op_stack.pop() {
+        if top == Token::LParen || top == Token::RParen {
+            return Err("Mismatched parentheses".to_string());
+        }
+        output.push(top);
+    }
+
+    Ok(output)
+}
+
+fn evaluate_rpn(tokens: Vec<Token>) -> Result<f64, String> {
+    let mut stack: Vec<f64> = Vec::new();
+    for token in tokens {
+        match token {
+            Token::Number(n) => stack.push(n),
+            Token::Plus => {
+                let b = stack.pop().ok_or("Invalid expression")?;
+                let a = stack.pop().ok_or("Invalid expression")?;
+                stack.push(a + b);
+            }
+            Token::Minus => {
+                let b = stack.pop().ok_or("Invalid expression")?;
+                let a = stack.pop().ok_or("Invalid expression")?;
+                stack.push(a - b);
+            }
+            Token::Mul => {
+                let b = stack.pop().ok_or("Invalid expression")?;
+                let a = stack.pop().ok_or("Invalid expression")?;
+                stack.push(a * b);
+            }
+            Token::Div => {
+                let b = stack.pop().ok_or("Invalid expression")?;
+                let a = stack.pop().ok_or("Invalid expression")?;
+                if b == 0.0 {
                     return Err("Division by zero".to_string());
                 }
-                lhs /= rhs;
+                stack.push(a / b);
             }
-        } else {
-            break;
+            Token::Neg => {
+                let a = stack.pop().ok_or("Invalid expression")?;
+                stack.push(-a);
+            }
+            _ => return Err("Invalid token in RPN".to_string()),
         }
     }
-    Ok(lhs)
-}
-
-fn parse_factor(s: &str, i: &mut usize) -> Result<f64, String> {
-    skip_spaces(s, i);
-    if *i < s.len() && s.as_bytes()[*i] == b'-' {
-        *i += 1;
-        let val = parse_factor(s, i)?;
-        return Ok(-val);
+    if stack.len() != 1 {
+        return Err("Invalid expression".to_string());
     }
-    if *i < s.len() && s.as_bytes()[*i] == b'(' {
-        *i += 1;
-        let val = parse_expression(s, i)?;
-        skip_spaces(s, i);
-        if *i >= s.len() || s.as_bytes()[*i] != b')' {
-            return Err("Expected ')'".to_string());
-        }
-        *i += 1;
-        return Ok(val);
-    }
-    parse_number(s, i)
+    Ok(stack[0])
 }
 
 fn evaluate_expression(expression: &str) -> Result<String, String> {
-    let mut i = 0;
-    let result = parse_expression(expression, &mut i)?;
-    skip_spaces(expression, &mut i);
-    if i != expression.len() {
-        return Err("Unexpected characters at end".to_string());
+    let tokens = tokenize(expression)?;
+    if tokens.is_empty() {
+        return Err("Empty expression".to_string());
     }
+    let rpn = shunting_yard(tokens)?;
+    let result = evaluate_rpn(rpn)?;
     Ok(format!("{}", result))
 }
 
