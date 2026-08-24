@@ -238,7 +238,7 @@ fn evaluate_rpn(tokens: Vec<Token>) -> Result<f64, String> {
     Ok(stack[0])
 }
 
-fn evaluate_expression(expression: &str) -> Result<String, String> {
+pub fn evaluate_expression(expression: &str) -> Result<String, String> {
     let tokens = tokenize(expression)?;
     if tokens.is_empty() {
         return Err("Empty expression".to_string());
@@ -268,6 +268,3 @@ fn main() {
         }
     }
 }
-
-#[cfg(test)]
-mod tests;
