@@ -53,14 +53,8 @@ impl Operator {
         }
     }
 }
+
 fn evaluate_expression(expression: &str) -> Result<String, String> {
-    // let addition = Operator::Addition { lhs: Operand::Value(2.0), rhs: Operand::Value(3.0) };
-    // let subtraction = Operator::Subtraction { lhs: Operand::Value(5.0), rhs: Operand::Value(1.0) };
-    // let negation = Operator::Negation { operand: Operand::Value(-7.0) };
-    //
-    // println!("Addition result: {}", addition.apply().evaluate());
-    // println!("Subtraction result: {}", subtraction.apply().evaluate());
-    // println!("Negation result: {}", negation.apply().evaluate());
     todo!()
 }
 
